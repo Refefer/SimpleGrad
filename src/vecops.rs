@@ -1,13 +1,17 @@
+#[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
 
 pub trait Input {
+    #[cfg(target_arch = "x86_64")]
     unsafe fn fill_256(&self, idx: usize) -> __m256; 
     fn iter(self, idx: usize) -> impl Iterator<Item=f32>;
     fn len(&self) -> usize;
 }
 
 pub trait Output {
-    unsafe fn fill_256(&self, idx: usize) -> __m256; 
+    #[cfg(target_arch = "x86_64")]
+    unsafe fn fill_256(&self, idx: usize) -> __m256;
+    #[cfg(target_arch = "x86_64")]
     unsafe fn store(&mut self, register: __m256, idx: usize);
     fn store_one(&mut self, value: f32, idx: usize);
     fn len(&self) -> usize;
@@ -16,6 +20,7 @@ pub trait Output {
 pub struct BroadcastInput<'a>(pub &'a [f32], pub usize);
 impl <'a> Input for BroadcastInput<'a> {
 
+    #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     unsafe fn fill_256(&self, _idx: usize) -> __m256 {
         _mm256_set1_ps(self.0[0])
@@ -36,6 +41,7 @@ impl <'a> Input for BroadcastInput<'a> {
 pub struct ArrayInput<'a>(pub &'a [f32]);
 impl <'a> Input for ArrayInput<'a> {
 
+    #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     unsafe fn fill_256(&self, idx: usize) -> __m256 {
         _mm256_loadu_ps(self.0.as_ptr().add(idx))
@@ -56,11 +62,13 @@ impl <'a> Input for ArrayInput<'a> {
 pub struct BroadcastOutput<'a>(pub &'a mut [f32], pub usize);
 impl <'a> Output for BroadcastOutput<'a> {
 
+    #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     unsafe fn fill_256(&self, _idx: usize) -> __m256 {
         _mm256_set1_ps(self.0[0])
     }
 
+    #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     unsafe fn store(&mut self, register: __m256, _idx: usize) {
         self.0[0] += hsum_avx_ps(register)
@@ -80,11 +88,13 @@ impl <'a> Output for BroadcastOutput<'a> {
 pub struct ArrayOutput<'a>(pub &'a mut [f32]);
 impl <'a> Output for ArrayOutput<'a> {
 
+    #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     unsafe fn fill_256(&self, idx: usize) -> __m256 {
         _mm256_loadu_ps(self.0.as_ptr().add(idx))
     }
 
+    #[cfg(target_arch = "x86_64")]
     #[inline(always)]
     unsafe fn store(&mut self, register: __m256, idx: usize) {
         let vo = self.fill_256(idx);
@@ -119,6 +129,7 @@ unsafe fn hsum_avx_ps(v: __m256) -> f32 {
     _mm_cvtss_f32(sum_128)
 }
 
+#[cfg(target_arch = "x86_64")]
 #[inline(always)]
 pub unsafe fn _mm256_exp_ps(x: __m256) -> __m256 {
     // Constants
